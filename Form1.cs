@@ -124,12 +124,22 @@ namespace _2026_04_28_Snake
         private void HindernisseInitialisieren()
         {
             hindernisse.Clear();
-            for (int i = 0; i < anzahlHindernisse; i++)
+            int mindestAbstand = Math.Max(3, spielfeldgröße / (anzahlHindernisse + 1));
+            int versuche = 0;
+
+            while (hindernisse.Count < anzahlHindernisse && versuche < 2000)
             {
-                Point h;
-                do h = new Point(rng.Next(5, spielfeldgröße - 5), rng.Next(5, spielfeldgröße - 5));
-                while (hindernisse.Contains(h) || dax.Teile.Contains(h) || spax.Teile.Contains(h));
-                hindernisse.Add(h);
+                versuche++;
+                var h = new Point(rng.Next(5, spielfeldgröße - 5),
+                                  rng.Next(5, spielfeldgröße - 5));
+
+                if (dax.Teile.Contains(h) || spax.Teile.Contains(h)) continue;
+
+                // Mindestabstand zu allen anderen Hindernissen einhalten
+                bool zuNah = hindernisse.Any(e =>
+                    Math.Abs(e.X - h.X) + Math.Abs(e.Y - h.Y) < mindestAbstand);
+
+                if (!zuNah) hindernisse.Add(h);
             }
         }
 
