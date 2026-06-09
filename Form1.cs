@@ -10,15 +10,15 @@ namespace _2026_04_28_Snake
         Schlange spax = new Schlange();
 
         int startlänge     = 3;
-        int spielfeldgröße = 30;
-        int skalierung     = 20;
+        int spielfeldgröße = 20;
+        int skalierung     = 24;
 
         List<Point> äpfel       = new List<Point>();
         List<Point> hindernisse = new List<Point>();
         Random rng = new Random();
-        int anzahlÄpfel       = 3;
-        int anzahlHindernisse = 5;
-        int anzahlSpieler     = 2;
+        int anzahlÄpfel       = 1;
+        int anzahlHindernisse = 0;
+        int anzahlSpieler     = 1;
 
         int scoreDax = 0, scoreSpax = 0;
         int highscoreDax = 0, highscoreSpax = 0;
@@ -26,12 +26,19 @@ namespace _2026_04_28_Snake
         Queue<string> bestenliste = new Queue<string>();
         const string BESTENLISTE_DATEI = "bestenliste.txt";
 
-        // Farb-Palette
-        static readonly Color FarbeHintergrund = Color.FromArgb(18, 18, 28);
-        static readonly Color FarbeGitter      = Color.FromArgb(30, 30, 46);
-        static readonly Color FarbeApfel       = Color.FromArgb(220, 50, 50);
-        static readonly Color FarbeApfelBlatt  = Color.FromArgb(55, 180, 55);
-        static readonly Color FarbeHindernis   = Color.FromArgb(70, 70, 90);
+        const int SCORE_H  = 56;   // Höhe der Score-Leiste
+        const int BORDER   = 6;    // Rand um das Spielfeld
+
+        // ── Google-Snake-Farben ───────────────────────────────────────────────
+        static readonly Color COL_BG_HELL   = Color.FromArgb(170, 215,  81);  // helles Feld
+        static readonly Color COL_BG_DUNKEL = Color.FromArgb(162, 209,  73);  // dunkles Feld
+        static readonly Color COL_RAND      = Color.FromArgb( 87, 138,  52);  // Rahmen
+        static readonly Color COL_SCORE_BG  = Color.FromArgb( 87, 138,  52);  // Leisten-BG
+        static readonly Color COL_P1        = Color.FromArgb( 72, 118, 236);  // Spieler 1 (blau)
+        static readonly Color COL_P2        = Color.FromArgb(230, 100,  50);  // Spieler 2 (orange)
+        static readonly Color COL_APFEL     = Color.FromArgb(215,  50,  50);  // Apfel (rot)
+        static readonly Color COL_BLATT     = Color.FromArgb( 87, 138,  52);  // Blatt
+        static readonly Color COL_HINDERNIS = Color.FromArgb( 80,  60,  40);  // Hindernisse
 
         #endregion
 
@@ -44,10 +51,10 @@ namespace _2026_04_28_Snake
             DoubleBuffered = true;
             KeyPreview     = true;
             StartPosition  = FormStartPosition.CenterScreen;
-            BackColor      = FarbeHintergrund;
+            BackColor      = COL_RAND;
 
-            dax.Name  = "Dax";  dax.Farbe  = Color.FromArgb(80, 210, 100);
-            spax.Name = "Spax"; spax.Farbe = Color.FromArgb(80, 155, 230);
+            dax.Name  = "Spieler 1";  dax.Farbe  = COL_P1;
+            spax.Name = "Spieler 2";  spax.Farbe = COL_P2;
 
             BestenlisteLaden();
         }
@@ -57,23 +64,33 @@ namespace _2026_04_28_Snake
         // ══════════════════════════════════════════════════════════════════════
         #region Spielstart
 
-        private void Form1_Shown(object sender, EventArgs e) => Starten();
+        private void Form1_Shown(object sender, EventArgs e) => NeuesSpielStarten();
+
+        private void NeuesSpielStarten()
+        {
+            timerZug.Stop();
+            var dlg = new StartDialog();
+            if (dlg.ShowDialog(this) != DialogResult.OK) { Close(); return; }
+            anzahlSpieler = dlg.AnzahlSpieler;
+            dax.Name      = dlg.Name1;
+            spax.Name     = dlg.Name2;
+            Starten();
+        }
 
         private void Starten()
         {
-            scoreDax  = 0;
-            scoreSpax = 0;
-            timerZug.Interval = 100;
+            scoreDax = scoreSpax = 0;
+            timerZug.Interval = 130;
 
-            ClientSize = new Size(spielfeldgröße * skalierung,
-                                  spielfeldgröße * skalierung + menuStrip1.Height);
+            // Fenstergröße: Menü + Scoreleiste + Rand oben + Spielfeld + Rand unten
+            int spielW = spielfeldgröße * skalierung + BORDER * 2;
+            int spielH = spielfeldgröße * skalierung + BORDER * 2;
+            ClientSize = new Size(spielW, menuStrip1.Height + SCORE_H + spielH);
 
             SchlangeInitialisieren();
             HindernisseInitialisieren();
-
             äpfel.Clear();
-            for (int i = 0; i < anzahlÄpfel; i++)
-                NeuerApfel();
+            for (int i = 0; i < anzahlÄpfel; i++) NeuerApfel();
 
             TitelAktualisieren();
             timerZug.Start();
@@ -83,16 +100,14 @@ namespace _2026_04_28_Snake
         private void SchlangeInitialisieren()
         {
             dax.Teile.Clear();
-            dax.xRichtung = 1;
-            dax.yRichtung = 0;
+            dax.xRichtung = 1; dax.yRichtung = 0;
             for (int i = 0; i < startlänge; i++)
                 dax.Teile.Enqueue(new Point(3 + i, 3));
 
             spax.Teile.Clear();
             if (anzahlSpieler == 2)
             {
-                spax.xRichtung = -1;
-                spax.yRichtung = 0;
+                spax.xRichtung = -1; spax.yRichtung = 0;
                 for (int i = 0; i < startlänge; i++)
                     spax.Teile.Enqueue(new Point(spielfeldgröße - 3 - i, spielfeldgröße - 3));
             }
@@ -104,11 +119,8 @@ namespace _2026_04_28_Snake
             for (int i = 0; i < anzahlHindernisse; i++)
             {
                 Point h;
-                do h = new Point(rng.Next(5, spielfeldgröße - 5),
-                                 rng.Next(5, spielfeldgröße - 5));
-                while (hindernisse.Contains(h) ||
-                       dax.Teile.Contains(h)   ||
-                       spax.Teile.Contains(h));
+                do h = new Point(rng.Next(5, spielfeldgröße - 5), rng.Next(5, spielfeldgröße - 5));
+                while (hindernisse.Contains(h) || dax.Teile.Contains(h) || spax.Teile.Contains(h));
                 hindernisse.Add(h);
             }
         }
@@ -116,9 +128,8 @@ namespace _2026_04_28_Snake
         private void NeuerApfel()
         {
             Point a;
-            do a = new Point(rng.Next(0, spielfeldgröße),
-                             rng.Next(0, spielfeldgröße));
-            while (dax.Teile.Contains(a)   || spax.Teile.Contains(a) ||
+            do a = new Point(rng.Next(0, spielfeldgröße), rng.Next(0, spielfeldgröße));
+            while (dax.Teile.Contains(a) || spax.Teile.Contains(a) ||
                    hindernisse.Contains(a) || äpfel.Contains(a));
             äpfel.Add(a);
         }
@@ -135,13 +146,11 @@ namespace _2026_04_28_Snake
             Point spaxPos = (anzahlSpieler == 2) ? spax.NächstesFeld() : new Point(-1, -1);
 
             if (IstTot(daxPos, dax)) verlierer = dax.Name;
-
             if (anzahlSpieler == 2)
             {
                 if (IstTot(spaxPos, spax))
                     verlierer = verlierer != null ? "Beide" : spax.Name;
-                if (daxPos == spaxPos)
-                    verlierer = "Beide";
+                if (daxPos == spaxPos) verlierer = "Beide";
             }
 
             if (verlierer != null)
@@ -152,7 +161,7 @@ namespace _2026_04_28_Snake
                 return;
             }
 
-            Vorwärts(daxPos, dax, ref scoreDax);
+            Vorwärts(daxPos,  dax,  ref scoreDax);
             if (anzahlSpieler == 2)
                 Vorwärts(spaxPos, spax, ref scoreSpax);
 
@@ -160,15 +169,15 @@ namespace _2026_04_28_Snake
             Invalidate();
         }
 
-        private void Vorwärts(Point neuesFeld, Schlange wer, ref int score)
+        private void Vorwärts(Point feld, Schlange wer, ref int score)
         {
-            wer.Teile.Enqueue(neuesFeld);
-            if (äpfel.Contains(neuesFeld))
+            wer.Teile.Enqueue(feld);
+            if (äpfel.Contains(feld))
             {
                 score++;
-                äpfel.Remove(neuesFeld);
+                äpfel.Remove(feld);
                 NeuerApfel();
-                if (timerZug.Interval > 25) timerZug.Interval -= 2;
+                if (timerZug.Interval > 50) timerZug.Interval -= 3;
             }
             else
             {
@@ -180,141 +189,213 @@ namespace _2026_04_28_Snake
         {
             if (pos.X < 0 || pos.Y < 0 || pos.X >= spielfeldgröße || pos.Y >= spielfeldgröße)
                 return true;
-            if (wer.Teile.Contains(pos))
-                return true;
+            if (wer.Teile.Contains(pos)) return true;
             Schlange gegner = (wer == dax) ? spax : dax;
-            if (anzahlSpieler == 2 && gegner.Teile.Contains(pos))
-                return true;
-            if (hindernisse.Contains(pos))
-                return true;
+            if (anzahlSpieler == 2 && gegner.Teile.Contains(pos)) return true;
+            if (hindernisse.Contains(pos)) return true;
             return false;
         }
 
         #endregion
 
         // ══════════════════════════════════════════════════════════════════════
-        #region Zeichnen
+        #region Zeichnen  (Google-Snake-Stil)
 
         protected override void OnPaint(PaintEventArgs e)
         {
             var g = e.Graphics;
             g.SmoothingMode = SmoothingMode.AntiAlias;
 
-            ZeichneHintergrund(g);
+            ZeichneScoreboard(g);
+            ZeichneSpielfeld(g);
             ZeichneHindernisse(g);
             ZeichneÄpfel(g);
             ZeichneSchlange(g, dax);
-            if (anzahlSpieler == 2)
-                ZeichneSchlange(g, spax);
+            if (anzahlSpieler == 2) ZeichneSchlange(g, spax);
         }
 
-        private void ZeichneHintergrund(Graphics g)
+        // ── Scoreboard (grüne Leiste oben) ───────────────────────────────────
+
+        private void ZeichneScoreboard(Graphics g)
         {
             int top = menuStrip1.Bottom;
-            g.FillRectangle(new SolidBrush(FarbeHintergrund),
-                            0, top, ClientSize.Width, ClientSize.Height - top);
+            int w   = ClientSize.Width;
 
-            using var pen = new Pen(FarbeGitter, 1);
-            for (int x = 0; x <= spielfeldgröße; x++)
-                g.DrawLine(pen, x * skalierung, top,
-                                x * skalierung, top + spielfeldgröße * skalierung);
-            for (int y = 0; y <= spielfeldgröße; y++)
-                g.DrawLine(pen, 0,                          top + y * skalierung,
-                                spielfeldgröße * skalierung, top + y * skalierung);
+            g.FillRectangle(new SolidBrush(COL_SCORE_BG), 0, top, w, SCORE_H);
+
+            var fontZahl  = new Font("Arial Rounded MT Bold", 18, FontStyle.Bold);
+            var fontName  = new Font("Arial", 9, FontStyle.Bold);
+            var fontBest  = new Font("Arial", 8);
+
+            if (anzahlSpieler == 1)
+            {
+                // Apfel-Symbol links + Score rechts daneben
+                ZeichneApfelSymbol(g, 14, top + SCORE_H / 2 - 14, 28);
+                g.DrawString($"{scoreDax}", fontZahl, Brushes.White, 50, top + 10);
+                g.DrawString($"Best: {highscoreDax}", fontBest,
+                             new SolidBrush(Color.FromArgb(200, 255, 200)), 52, top + 36);
+                g.DrawString(dax.Name, fontName,
+                             new SolidBrush(Color.FromArgb(200, 255, 200)), 52, top + 2);
+            }
+            else
+            {
+                // Zwei Hälften
+                int mitte = w / 2;
+                using (var trenn = new Pen(Color.FromArgb(70, 110, 40), 2))
+                    g.DrawLine(trenn, mitte, top + 8, mitte, top + SCORE_H - 8);
+
+                // P1 (links)
+                ZeichneApfelSymbol(g, 10, top + SCORE_H / 2 - 10, 22);
+                g.DrawString(dax.Name, fontName, new SolidBrush(Color.FromArgb(200, 230, 255)), 38, top + 4);
+                g.DrawString($"{scoreDax}", fontZahl, Brushes.White, 38, top + 16);
+                g.DrawString($"Best {highscoreDax}", fontBest,
+                             new SolidBrush(Color.FromArgb(180, 210, 180)), mitte - 60, top + 38);
+
+                // P2 (rechts)
+                ZeichneApfelSymbol(g, mitte + 10, top + SCORE_H / 2 - 10, 22);
+                g.DrawString(spax.Name, fontName, new SolidBrush(Color.FromArgb(255, 220, 180)), mitte + 38, top + 4);
+                g.DrawString($"{scoreSpax}", fontZahl, Brushes.White, mitte + 38, top + 16);
+                g.DrawString($"Best {highscoreSpax}", fontBest,
+                             new SolidBrush(Color.FromArgb(180, 210, 180)), w - 60, top + 38);
+            }
         }
+
+        // ── Spielfeld (Schachbrett + Rahmen) ─────────────────────────────────
+
+        private void ZeichneSpielfeld(Graphics g)
+        {
+            // Schachbrett-Muster
+            for (int x = 0; x < spielfeldgröße; x++)
+                for (int y = 0; y < spielfeldgröße; y++)
+                {
+                    Color c = (x + y) % 2 == 0 ? COL_BG_HELL : COL_BG_DUNKEL;
+                    g.FillRectangle(new SolidBrush(c), ZellePixel(x, y));
+                }
+
+            // Grüner Rahmen
+            var r = new Rectangle(0, SpielTop() - BORDER,
+                                   spielfeldgröße * skalierung + BORDER * 2,
+                                   spielfeldgröße * skalierung + BORDER * 2);
+            using var pen = new Pen(COL_RAND, BORDER * 2);
+            g.DrawRectangle(pen, r);
+        }
+
+        // ── Hindernisse ───────────────────────────────────────────────────────
 
         private void ZeichneHindernisse(Graphics g)
         {
-            using var füllung = new SolidBrush(FarbeHindernis);
-            using var rand    = new Pen(Color.FromArgb(110, 110, 135), 1.5f);
+            using var b = new SolidBrush(COL_HINDERNIS);
             foreach (var h in hindernisse)
             {
-                var r = Feld(h);
+                var r = ZellePixel(h.X, h.Y);
                 r.Inflate(-2, -2);
-                FülleRundesRechteck(g, füllung, r, 3);
-                ZeichneRundesRechteckRand(g, rand, r, 3);
+                FülleRundRect(g, b, r, 4);
             }
         }
+
+        // ── Äpfel ─────────────────────────────────────────────────────────────
 
         private void ZeichneÄpfel(Graphics g)
         {
             foreach (var a in äpfel)
             {
-                var r   = Feld(a);
+                var r   = ZellePixel(a.X, a.Y);
                 int pad = 3;
                 var oval = new Rectangle(r.X + pad, r.Y + pad + 2,
                                          r.Width - pad * 2, r.Height - pad * 2 - 2);
-
-                // Apfelkörper
-                using (var b = new SolidBrush(FarbeApfel))
-                    g.FillEllipse(b, oval);
-
-                // Glanzfleck
-                using (var glanz = new SolidBrush(Color.FromArgb(70, 255, 255, 255)))
-                    g.FillEllipse(glanz, oval.X + 3, oval.Y + 2,
-                                         oval.Width / 3, oval.Height / 3);
-
-                // Stiel
-                using (var stiel = new Pen(Color.SaddleBrown, 2f))
-                    g.DrawLine(stiel,
-                               r.X + r.Width / 2,     r.Y + pad,
-                               r.X + r.Width / 2 + 2, r.Y);
-
-                // Blatt
-                using (var blatt = new SolidBrush(FarbeApfelBlatt))
-                    g.FillEllipse(blatt, r.X + r.Width / 2, r.Y,
-                                         r.Width / 4 + 1, r.Height / 5);
+                ZeichneApfelSymbol(g, oval.X, oval.Y, oval.Width);
             }
         }
+
+        // Apfel zeichnen an beliebiger Position + Größe
+        private void ZeichneApfelSymbol(Graphics g, int x, int y, int size)
+        {
+            var oval = new Rectangle(x, y, size, size);
+
+            using (var b = new SolidBrush(COL_APFEL))
+                g.FillEllipse(b, oval);
+
+            // Glanzfleck
+            using (var gl = new SolidBrush(Color.FromArgb(80, 255, 230, 230)))
+                g.FillEllipse(gl, oval.X + oval.Width / 5, oval.Y + oval.Height / 6,
+                                   oval.Width / 3, oval.Height / 3);
+
+            // Stiel
+            using (var stiel = new Pen(Color.FromArgb(100, 60, 20), 2f))
+                g.DrawLine(stiel, oval.X + oval.Width / 2, oval.Y,
+                                   oval.X + oval.Width / 2 + 2, oval.Y - size / 4);
+
+            // Blatt
+            using (var blatt = new SolidBrush(COL_BLATT))
+                g.FillEllipse(blatt,
+                               oval.X + oval.Width / 2 + 1, oval.Y - size / 5,
+                               size / 4 + 2, size / 5 + 2);
+        }
+
+        // ── Schlange (verbundene Rundkörper) ──────────────────────────────────
 
         private void ZeichneSchlange(Graphics g, Schlange s)
         {
             var teile = s.Teile.ToArray();
-            for (int i = 0; i < teile.Length - 1; i++)
-                ZeichneSegment(g, teile[i], s.Farbe, istKopf: false, 0, 0);
+            if (teile.Length == 0) return;
 
-            if (teile.Length > 0)
+            // Körper (von hinten nach vorne, damit Kopf obendrauf)
+            using var körperBrush = new SolidBrush(s.Farbe);
+            for (int i = 0; i < teile.Length; i++)
             {
-                var kopf = teile[teile.Length - 1];
-                ZeichneSegment(g, kopf, s.Farbe, istKopf: true, s.xRichtung, s.yRichtung);
+                var r = ZellePixel(teile[i].X, teile[i].Y);
+                r.Inflate(-2, -2);
+
+                // Segment als Kreis → überlappen ergibt verbundene Schlange
+                g.FillEllipse(körperBrush, r);
+
+                // Verbindung zum nächsten Segment (Rechteck zwischen zwei Mittelpunkten)
+                if (i + 1 < teile.Length)
+                    VerbindeSegmente(g, körperBrush, teile[i], teile[i + 1]);
             }
+
+            // Kopf extra (etwas größer + Augen)
+            var kopf = teile[teile.Length - 1];
+            var kr = ZellePixel(kopf.X, kopf.Y);
+            kr.Inflate(-1, -1);
+            using (var kb = new SolidBrush(s.Farbe))
+                FülleRundRect(g, kb, kr, kr.Height / 3);
+
+            ZeichneAugen(g, kr, s.xRichtung, s.yRichtung);
         }
 
-        private void ZeichneSegment(Graphics g, Point pos, Color farbe,
-                                     bool istKopf, int dx, int dy)
+        // Füllt die Lücke zwischen zwei benachbarten Segmenten
+        private void VerbindeSegmente(Graphics g, Brush b, Point a, Point bPt)
         {
-            var r      = Feld(pos);
-            r.Inflate(-2, -2);
-            int radius = istKopf ? 6 : 4;
+            int halb   = skalierung / 2 - 2;
+            int mitAX  = BORDER + a.X  * skalierung + skalierung / 2;
+            int mitAY  = SpielTop() + a.Y  * skalierung + skalierung / 2;
+            int mitBX  = BORDER + bPt.X * skalierung + skalierung / 2;
+            int mitBY  = SpielTop() + bPt.Y * skalierung + skalierung / 2;
 
-            using (var b = new SolidBrush(farbe))
-                FülleRundesRechteck(g, b, r, radius);
-
-            using (var p = new Pen(DunklerMachen(farbe, 50), 1.5f))
-                ZeichneRundesRechteckRand(g, p, r, radius);
-
-            // Glanzlinie
-            using (var glanz = new SolidBrush(Color.FromArgb(50, 255, 255, 255)))
-                g.FillRectangle(glanz, r.X + 3, r.Y + 2, r.Width - 6, 3);
-
-            if (istKopf)
-                ZeichneAugen(g, r, dx, dy);
+            // Horizontal oder vertikal?
+            if (a.Y == bPt.Y)   // waagerecht
+                g.FillRectangle(b, Math.Min(mitAX, mitBX), mitAY - halb,
+                                    Math.Abs(mitAX - mitBX), halb * 2);
+            else                // senkrecht
+                g.FillRectangle(b, mitAX - halb, Math.Min(mitAY, mitBY),
+                                    halb * 2, Math.Abs(mitAY - mitBY));
         }
+
+        // ── Augen ─────────────────────────────────────────────────────────────
 
         private void ZeichneAugen(Graphics g, Rectangle kopf, int dx, int dy)
         {
-            int s = Math.Max(2, skalierung / 5);
-            (Point a1, Point a2) = AugenPositionen(kopf, dx, dy, s);
-
-            using var weiß    = new SolidBrush(Color.White);
-            using var schwarz = new SolidBrush(Color.Black);
-            g.FillEllipse(weiß,   a1.X,     a1.Y,     s, s);
-            g.FillEllipse(weiß,   a2.X,     a2.Y,     s, s);
-            g.FillEllipse(schwarz, a1.X + 1, a1.Y + 1, s - 1, s - 1);
-            g.FillEllipse(schwarz, a2.X + 1, a2.Y + 1, s - 1, s - 1);
+            int s = Math.Max(3, skalierung / 4);
+            (Point a1, Point a2) = AugenPos(kopf, dx, dy, s);
+            g.FillEllipse(Brushes.White,  a1.X, a1.Y, s, s);
+            g.FillEllipse(Brushes.White,  a2.X, a2.Y, s, s);
+            int p = Math.Max(1, s / 2);
+            g.FillEllipse(Brushes.Black,  a1.X + s/4, a1.Y + s/4, p, p);
+            g.FillEllipse(Brushes.Black,  a2.X + s/4, a2.Y + s/4, p, p);
         }
 
-        private static (Point, Point) AugenPositionen(Rectangle k, int dx, int dy, int s)
+        private static (Point, Point) AugenPos(Rectangle k, int dx, int dy, int s)
         {
             if (dx ==  1) return (new Point(k.Right - s - 2, k.Y + 3),
                                   new Point(k.Right - s - 2, k.Bottom - s - 3));
@@ -322,46 +403,36 @@ namespace _2026_04_28_Snake
                                   new Point(k.X + 2,         k.Bottom - s - 3));
             if (dy == -1) return (new Point(k.X + 3,         k.Y + 2),
                                   new Point(k.Right - s - 3, k.Y + 2));
-            /* dy ==  1 */ return (new Point(k.X + 3,         k.Bottom - s - 2),
-                                   new Point(k.Right - s - 3, k.Bottom - s - 2));
+            return             (new Point(k.X + 3,         k.Bottom - s - 2),
+                                new Point(k.Right - s - 3, k.Bottom - s - 2));
         }
 
-        // ── GDI+ Hilfsmethoden ──────────────────────────────────────────────
+        // ── Koordinaten-Hilfsmethoden ─────────────────────────────────────────
 
-        private Rectangle Feld(Point p) =>
-            new Rectangle(p.X * skalierung,
-                           menuStrip1.Bottom + p.Y * skalierung,
+        private int SpielTop() => menuStrip1.Bottom + SCORE_H + BORDER;
+
+        private Rectangle ZellePixel(int x, int y) =>
+            new Rectangle(BORDER + x * skalierung,
+                           SpielTop() + y * skalierung,
                            skalierung, skalierung);
 
-        private void FülleRundesRechteck(Graphics g, Brush brush, Rectangle r, int radius)
+        private void FülleRundRect(Graphics g, Brush b, Rectangle r, int radius)
         {
-            using var path = RundesRechteckPfad(r, radius);
-            g.FillPath(brush, path);
+            using var path = RundRectPfad(r, radius);
+            g.FillPath(b, path);
         }
 
-        private void ZeichneRundesRechteckRand(Graphics g, Pen pen, Rectangle r, int radius)
+        private static GraphicsPath RundRectPfad(Rectangle r, int radius)
         {
-            using var path = RundesRechteckPfad(r, radius);
-            g.DrawPath(pen, path);
+            int d = radius * 2;
+            var p = new GraphicsPath();
+            p.AddArc(r.X,         r.Y,          d, d, 180, 90);
+            p.AddArc(r.Right - d, r.Y,          d, d, 270, 90);
+            p.AddArc(r.Right - d, r.Bottom - d, d, d,   0, 90);
+            p.AddArc(r.X,         r.Bottom - d, d, d,  90, 90);
+            p.CloseFigure();
+            return p;
         }
-
-        private static GraphicsPath RundesRechteckPfad(Rectangle r, int radius)
-        {
-            int d    = radius * 2;
-            var path = new GraphicsPath();
-            path.AddArc(r.X,         r.Y,          d, d, 180, 90);
-            path.AddArc(r.Right - d, r.Y,          d, d, 270, 90);
-            path.AddArc(r.Right - d, r.Bottom - d, d, d,   0, 90);
-            path.AddArc(r.X,         r.Bottom - d, d, d,  90, 90);
-            path.CloseFigure();
-            return path;
-        }
-
-        private static Color DunklerMachen(Color c, int betrag) =>
-            Color.FromArgb(c.A,
-                           Math.Max(0, c.R - betrag),
-                           Math.Max(0, c.G - betrag),
-                           Math.Max(0, c.B - betrag));
 
         #endregion
 
@@ -374,28 +445,27 @@ namespace _2026_04_28_Snake
             if (scoreSpax > highscoreSpax) highscoreSpax = scoreSpax;
 
             string eintrag =
-                $"{DateTime.Now:dd.MM.yyyy HH:mm}  |  " +
-                $"{dax.Name}: {scoreDax} Äpfel" +
-                (anzahlSpieler == 2 ? $"  |  {spax.Name}: {scoreSpax} Äpfel" : "") +
-                $"  |  Verlierer: {verlierer}";
+                $"{DateTime.Now:dd.MM.yyyy HH:mm}  {dax.Name}: {scoreDax}" +
+                (anzahlSpieler == 2 ? $"  {spax.Name}: {scoreSpax}" : "") +
+                $"  Verlierer: {verlierer}";
             bestenliste.Enqueue(eintrag);
             if (bestenliste.Count > 10) bestenliste.Dequeue();
             BestenlisteSpeichern();
 
             string msg =
-                $"❌  {verlierer} hat verloren!\n\n" +
-                $"─── Ergebnis ─────────────────────\n" +
+                $"💀  {verlierer} hat verloren!\n\n" +
+                $"── Ergebnis ──────────────────\n" +
                 $"{dax.Name}:  {scoreDax} Äpfel" +
                 (anzahlSpieler == 2 ? $"\n{spax.Name}: {scoreSpax} Äpfel" : "") +
-                $"\n\n─── Highscores ───────────────────\n" +
+                $"\n\n── Highscores ────────────────\n" +
                 $"{dax.Name}:  {highscoreDax} Äpfel" +
                 (anzahlSpieler == 2 ? $"\n{spax.Name}: {highscoreSpax} Äpfel" : "") +
-                $"\n\n─── Letzte 10 Spiele ─────────────\n" +
+                $"\n\n── Letzte 10 Spiele ──────────\n" +
                 string.Join("\n", bestenliste) +
                 "\n\nNochmal spielen?";
 
             if (MessageBox.Show(msg, "Spiel beendet", MessageBoxButtons.YesNo) == DialogResult.Yes)
-                Starten();
+                NeuesSpielStarten();
             else
                 Close();
         }
@@ -403,8 +473,8 @@ namespace _2026_04_28_Snake
         private void TitelAktualisieren()
         {
             Text = anzahlSpieler == 2
-                ? $"Snake  |  {dax.Name}: {scoreDax} 🍎   {spax.Name}: {scoreSpax} 🍎"
-                : $"Snake  |  {dax.Name}: {scoreDax} 🍎   Highscore: {highscoreDax}";
+                ? $"Snake  |  {dax.Name}: {scoreDax}   {spax.Name}: {scoreSpax}"
+                : $"Snake  |  {dax.Name}: {scoreDax}   Best: {highscoreDax}";
         }
 
         private void BestenlisteLaden()
@@ -436,7 +506,6 @@ namespace _2026_04_28_Snake
                 case Keys.Left:  if (dax.xRichtung !=  1) { dax.xRichtung = -1; dax.yRichtung =  0; } break;
                 case Keys.Right: if (dax.xRichtung != -1) { dax.xRichtung =  1; dax.yRichtung =  0; } break;
             }
-
             if (anzahlSpieler == 2)
             {
                 switch (e.KeyCode)
@@ -454,33 +523,25 @@ namespace _2026_04_28_Snake
         // ══════════════════════════════════════════════════════════════════════
         #region Menü-Events
 
+        private void neuStartenToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            timerZug.Stop();
+            NeuesSpielStarten();
+        }
+
         private void optionenToolStripMenuItem_Click(object sender, EventArgs e)
         {
             timerZug.Stop();
-            var dlg = new OptionsDialog(spielfeldgröße, skalierung,
-                                        dax.Name, spax.Name,
-                                        anzahlSpieler, anzahlÄpfel, anzahlHindernisse);
+            var dlg = new OptionsDialog(spielfeldgröße, skalierung, anzahlÄpfel, anzahlHindernisse);
             if (dlg.ShowDialog(this) == DialogResult.OK)
             {
                 spielfeldgröße    = dlg.Spielfeldgröße;
                 skalierung        = dlg.Skalierung;
-                dax.Name          = dlg.Name1;
-                spax.Name         = dlg.Name2;
-                anzahlSpieler     = dlg.AnzahlSpieler;
                 anzahlÄpfel       = dlg.AnzahlÄpfel;
                 anzahlHindernisse = dlg.AnzahlHindernisse;
                 Starten();
             }
-            else
-            {
-                timerZug.Start();
-            }
-        }
-
-        private void neuStartenToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            timerZug.Stop();
-            Starten();
+            else timerZug.Start();
         }
 
         private void bestenlisteToolStripMenuItem_Click(object sender, EventArgs e)

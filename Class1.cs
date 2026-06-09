@@ -1,91 +1,84 @@
-﻿namespace _2026_04_28_Snake
+namespace _2026_04_28_Snake
 {
+    // Optionen: Spielfeld, Skalierung, Äpfel, Hindernisse
+    // Spieleranzahl + Namen → StartDialog
     public partial class OptionsDialog : Form
     {
-        public int Spielfeldgröße { get; private set; }
-        public int Skalierung { get; private set; }
-        public string Name1 { get; private set; }
-        public string Name2 { get; private set; }
-        public int AnzahlSpieler { get; private set; }
-        public int AnzahlÄpfel { get; private set; }
+        public int Spielfeldgröße    { get; private set; }
+        public int Skalierung        { get; private set; }
+        public int AnzahlÄpfel      { get; private set; }
         public int AnzahlHindernisse { get; private set; }
 
-        private NumericUpDown nudFeldgröße;
-        private NumericUpDown nudSkalierung;
-        private NumericUpDown nudSpieler;
-        private NumericUpDown nudÄpfel;
-        private NumericUpDown nudHindernisse;
-        private TextBox txtName1;
-        private TextBox txtName2;
-        private Label lblName2;
+        NumericUpDown nudFeld, nudSkala, nudÄpfel, nudHind;
 
-        public OptionsDialog(int aktFeldgröße, int aktSkalierung, string name1, string name2,
-                             int anzahlSpieler, int anzahlÄpfel, int anzahlHindernisse)
+        public OptionsDialog(int aktFeld, int aktSkala, int aktÄpfel, int aktHind)
         {
-            Text = "Optionen";
+            Text            = "Optionen";
             FormBorderStyle = FormBorderStyle.FixedDialog;
-            MaximizeBox = false;
-            MinimizeBox = false;
-            StartPosition = FormStartPosition.CenterParent;
-            ClientSize = new Size(320, 370);
+            MaximizeBox     = false;
+            MinimizeBox     = false;
+            StartPosition   = FormStartPosition.CenterParent;
+            ClientSize      = new Size(300, 230);
+            BackColor       = Color.FromArgb(20, 20, 20);
+            ForeColor       = Color.White;
 
-            // --- Spielerzahl ---
-            var lblSpieler = new Label { Text = "Anzahl Spieler:", Left = 20, Top = 20, Width = 140 };
-            nudSpieler = new NumericUpDown { Left = 170, Top = 17, Width = 80, Minimum = 1, Maximum = 2, Value = anzahlSpieler };
-            nudSpieler.ValueChanged += (s, e) => lblName2.Visible = txtName2.Visible = (nudSpieler.Value == 2);
+            int y = 20;
+            nudFeld  = AddZeile("Spielfeldgröße:",  aktFeld,  10, 60,  y); y += 44;
+            nudSkala = AddZeile("Skalierung (px):", aktSkala,  8, 40,  y); y += 44;
+            nudÄpfel = AddZeile("Anzahl Äpfel:",    aktÄpfel,  1, 10,  y); y += 44;
+            nudHind  = AddZeile("Hindernisse:",      aktHind,   0, 30,  y); y += 52;
 
-            // --- Namen ---
-            var lblName1 = new Label { Text = "Name Spieler 1:", Left = 20, Top = 55, Width = 140 };
-            txtName1 = new TextBox { Left = 170, Top = 52, Width = 120, Text = name1 };
-
-            lblName2 = new Label { Text = "Name Spieler 2:", Left = 20, Top = 90, Width = 140, Visible = anzahlSpieler == 2 };
-            txtName2 = new TextBox { Left = 170, Top = 87, Width = 120, Text = name2, Visible = anzahlSpieler == 2 };
-
-            // --- Spielfeldgröße ---
-            var lblFeld = new Label { Text = "Spielfeldgröße:", Left = 20, Top = 130, Width = 140 };
-            nudFeldgröße = new NumericUpDown { Left = 170, Top = 127, Width = 80, Minimum = 20, Maximum = 100, Value = aktFeldgröße };
-
-            // --- Skalierung ---
-            var lblSkala = new Label { Text = "Skalierung (px):", Left = 20, Top = 165, Width = 140 };
-            nudSkalierung = new NumericUpDown { Left = 170, Top = 162, Width = 80, Minimum = 8, Maximum = 32, Value = aktSkalierung };
-
-            // --- Äpfel ---
-            var lblÄpfel = new Label { Text = "Anzahl Äpfel:", Left = 20, Top = 200, Width = 140 };
-            nudÄpfel = new NumericUpDown { Left = 170, Top = 197, Width = 80, Minimum = 1, Maximum = 10, Value = anzahlÄpfel };
-
-            // --- Hindernisse ---
-            var lblHind = new Label { Text = "Hindernisse:", Left = 20, Top = 235, Width = 140 };
-            nudHindernisse = new NumericUpDown { Left = 170, Top = 232, Width = 80, Minimum = 0, Maximum = 30, Value = anzahlHindernisse };
-
-            // --- Buttons ---
-            var btnOK = new Button { Text = "OK", Left = 120, Top = 290, Width = 80, DialogResult = DialogResult.OK };
-            var btnAbbrechen = new Button { Text = "Abbrechen", Left = 210, Top = 290, Width = 90, DialogResult = DialogResult.Cancel };
-
+            var btnOK = new Button
+            {
+                Text         = "OK",
+                Left = 55, Top = y, Width = 80, Height = 32,
+                BackColor    = Color.FromArgb(87, 138, 52),
+                ForeColor    = Color.White,
+                FlatStyle    = FlatStyle.Flat,
+                DialogResult = DialogResult.OK,
+                Cursor       = Cursors.Hand,
+            };
+            btnOK.FlatAppearance.BorderSize = 0;
             btnOK.Click += (s, e) =>
             {
-                Spielfeldgröße = (int)nudFeldgröße.Value;
-                Skalierung = (int)nudSkalierung.Value;
-                Name1 = txtName1.Text.Trim() == "" ? "Spieler 1" : txtName1.Text.Trim();
-                Name2 = txtName2.Text.Trim() == "" ? "Spieler 2" : txtName2.Text.Trim();
-                AnzahlSpieler = (int)nudSpieler.Value;
-                AnzahlÄpfel = (int)nudÄpfel.Value;
-                AnzahlHindernisse = (int)nudHindernisse.Value;
+                Spielfeldgröße    = (int)nudFeld.Value;
+                Skalierung        = (int)nudSkala.Value;
+                AnzahlÄpfel      = (int)nudÄpfel.Value;
+                AnzahlHindernisse = (int)nudHind.Value;
             };
 
-            AcceptButton = btnOK;
-            CancelButton = btnAbbrechen;
-
-            Controls.AddRange(new Control[]
+            var btnAbb = new Button
             {
-                lblSpieler, nudSpieler,
-                lblName1, txtName1,
-                lblName2, txtName2,
-                lblFeld, nudFeldgröße,
-                lblSkala, nudSkalierung,
-                lblÄpfel, nudÄpfel,
-                lblHind, nudHindernisse,
-                btnOK, btnAbbrechen
+                Text         = "Abbrechen",
+                Left = 150, Top = y, Width = 100, Height = 32,
+                FlatStyle    = FlatStyle.Flat,
+                DialogResult = DialogResult.Cancel,
+                Cursor       = Cursors.Hand,
+            };
+            btnAbb.FlatAppearance.BorderColor = Color.Gray;
+
+            AcceptButton = btnOK;
+            CancelButton = btnAbb;
+            Controls.AddRange(new Control[] { btnOK, btnAbb });
+        }
+
+        private NumericUpDown AddZeile(string text, int wert, int min, int max, int y)
+        {
+            Controls.Add(new Label
+            {
+                Text      = text,
+                Left      = 20, Top = y + 4, Width = 155,
+                ForeColor = Color.Silver,
             });
+            var nud = new NumericUpDown
+            {
+                Left      = 178, Top = y, Width = 80,
+                Minimum   = min, Maximum = max, Value = wert,
+                BackColor = Color.FromArgb(35, 35, 35),
+                ForeColor = Color.White,
+            };
+            Controls.Add(nud);
+            return nud;
         }
     }
 }
