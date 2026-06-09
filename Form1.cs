@@ -124,22 +124,42 @@ namespace _2026_04_28_Snake
         private void HindernisseInitialisieren()
         {
             hindernisse.Clear();
-            int mindestAbstand = Math.Max(3, spielfeldgröße / (anzahlHindernisse + 1));
-            int versuche = 0;
+            if (anzahlHindernisse == 0) return;
 
-            while (hindernisse.Count < anzahlHindernisse && versuche < 2000)
+            // Spielfeld in ein Raster aufteilen → 1 Hindernis pro Zelle
+            int cols = (int)Math.Ceiling(Math.Sqrt(anzahlHindernisse));
+            int rows = (int)Math.Ceiling((double)anzahlHindernisse / cols);
+
+            int rand   = 4;                          // Abstand zum Rand
+            int nutzW  = spielfeldgröße - rand * 2;
+            int nutzH  = spielfeldgröße - rand * 2;
+            int zoneW  = nutzW / cols;
+            int zoneH  = nutzH / rows;
+
+            // Alle Zonen mischen → zufällige Reihenfolge, aber gleichmäßige Abdeckung
+            var zonen = new List<(int col, int row)>();
+            for (int c = 0; c < cols; c++)
+                for (int r = 0; r < rows; r++)
+                    zonen.Add((c, r));
+            zonen = zonen.OrderBy(_ => rng.Next()).ToList();
+
+            foreach (var (col, row) in zonen.Take(anzahlHindernisse))
             {
-                versuche++;
-                var h = new Point(rng.Next(5, spielfeldgröße - 5),
-                                  rng.Next(5, spielfeldgröße - 5));
+                int x0 = rand + col * zoneW;
+                int y0 = rand + row * zoneH;
 
-                if (dax.Teile.Contains(h) || spax.Teile.Contains(h)) continue;
+                // Innerhalb der Zone zufällig platzieren, Rand der Zone aussparen
+                Point h;
+                int versuche = 0;
+                do
+                {
+                    h = new Point(x0 + rng.Next(1, Math.Max(2, zoneW - 1)),
+                                  y0 + rng.Next(1, Math.Max(2, zoneH - 1)));
+                    versuche++;
+                } while (versuche < 50 &&
+                         (dax.Teile.Contains(h) || spax.Teile.Contains(h)));
 
-                // Mindestabstand zu allen anderen Hindernissen einhalten
-                bool zuNah = hindernisse.Any(e =>
-                    Math.Abs(e.X - h.X) + Math.Abs(e.Y - h.Y) < mindestAbstand);
-
-                if (!zuNah) hindernisse.Add(h);
+                hindernisse.Add(h);
             }
         }
 
