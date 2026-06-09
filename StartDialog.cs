@@ -54,11 +54,11 @@ namespace _2026_04_28_Snake
             // ── Namen ─────────────────────────────────────────────────────────
             Controls.Add(Kleinlabel("Namen", 40, 186));
             Controls.Add(Kleinlabel("Spieler 1:", 40, 208));
-            txt1 = TextEingabe(vorName1, 140, 206);
+            txt1 = TextEingabe(vorName1, 165, 206);
             Controls.Add(txt1);
 
             lblName2 = Kleinlabel("Spieler 2:", 40, 238);
-            txt2     = TextEingabe(vorName2, 140, 236);
+            txt2     = TextEingabe(vorName2, 165, 236);
             lblName2.Visible = txt2.Visible = (vorSpieler == 2);
             Controls.Add(lblName2);
             Controls.Add(txt2);

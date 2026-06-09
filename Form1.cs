@@ -26,6 +26,8 @@ namespace _2026_04_28_Snake
         Queue<string> bestenliste = new Queue<string>();
         const string BESTENLISTE_DATEI = "bestenliste.txt";
 
+        bool spielGestartet = false;  // verhindert Malen vor dem ersten Start
+
         const int SCORE_H  = 56;   // Höhe der Score-Leiste
         const int BORDER   = 6;    // Rand um das Spielfeld
 
@@ -97,6 +99,7 @@ namespace _2026_04_28_Snake
             äpfel.Clear();
             for (int i = 0; i < anzahlÄpfel; i++) NeuerApfel();
 
+            spielGestartet = true;
             TitelAktualisieren();
             timerZug.Start();
             Invalidate();
@@ -208,6 +211,12 @@ namespace _2026_04_28_Snake
 
         protected override void OnPaint(PaintEventArgs e)
         {
+            if (!spielGestartet)
+            {
+                e.Graphics.Clear(COL_RAND);
+                return;
+            }
+
             var g = e.Graphics;
             g.SmoothingMode = SmoothingMode.AntiAlias;
 
