@@ -2,96 +2,102 @@ namespace _2026_04_28_Snake
 {
     public class StartDialog : Form
     {
-        // Ergebnisse die Form1 ausliest
-        public int    AnzahlSpieler { get; private set; } = 1;
-        public string Name1         { get; private set; } = "Spieler 1";
-        public string Name2         { get; private set; } = "Spieler 2";
+        // ── Ergebnisse ────────────────────────────────────────────────────────
+        public int    AnzahlSpieler    { get; private set; } = 1;
+        public string Name1            { get; private set; } = "Spieler 1";
+        public string Name2            { get; private set; } = "Spieler 2";
+        public int    AnzahlHindernisse { get; private set; } = 0;
 
-        // ── Farben ────────────────────────────────────────────────────────────
-        static readonly Color GRÜN    = Color.FromArgb(57, 255, 20);
-        static readonly Color DUNKEL  = Color.FromArgb(10, 10, 10);
-        static readonly Color DUNKEL2 = Color.FromArgb(22, 22, 22);
+        static readonly Color GRÜN   = Color.FromArgb(57, 255, 20);
+        static readonly Color DUNKEL = Color.FromArgb(10, 10, 10);
 
-        // ── Controls ──────────────────────────────────────────────────────────
         RadioButton rb1, rb2;
         TextBox     txt1, txt2;
-        Label       lbl2;
-        Panel       pnlNames;
+        Label       lblName2;
+        CheckBox    chkHind;
+        NumericUpDown nudHind;
+        Label       lblHindAnzahl;
 
-        public StartDialog()
+        public StartDialog(string vorName1 = "Spieler 1", string vorName2 = "Spieler 2",
+                           int vorSpieler = 1, int vorHindernisse = 0)
         {
-            BackColor         = DUNKEL;
-            ForeColor         = GRÜN;
-            FormBorderStyle   = FormBorderStyle.FixedDialog;
-            MaximizeBox       = false;
-            MinimizeBox       = false;
-            StartPosition     = FormStartPosition.CenterScreen;
-            ClientSize        = new Size(360, 330);
-            Text              = "Snake – Spielstart";
+            BackColor       = DUNKEL;
+            ForeColor       = GRÜN;
+            FormBorderStyle = FormBorderStyle.FixedDialog;
+            MaximizeBox     = false;
+            MinimizeBox     = false;
+            StartPosition   = FormStartPosition.CenterScreen;
+            ClientSize      = new Size(360, 370);
+            Text            = "Snake – Spielstart";
 
             // ── Titel ─────────────────────────────────────────────────────────
-            var titel = new Label
+            Controls.Add(new Label
             {
                 Text      = "S N A K E",
                 Font      = new Font("Consolas", 22, FontStyle.Bold),
                 ForeColor = GRÜN,
                 TextAlign = ContentAlignment.MiddleCenter,
-                Bounds    = new Rectangle(0, 18, 360, 50),
-            };
-            var untertitel = new Label
-            {
-                Text      = "──────────────────────────────",
-                ForeColor = Color.FromArgb(40, 120, 20),
-                TextAlign = ContentAlignment.MiddleCenter,
-                Bounds    = new Rectangle(0, 66, 360, 18),
-                Font      = new Font("Consolas", 9),
-            };
+                Bounds    = new Rectangle(0, 16, 360, 50),
+            });
+            Controls.Add(Trennlinie(70));
 
-            // ── Spieler-Auswahl ───────────────────────────────────────────────
-            var lblSpieler = new Label
-            {
-                Text      = "Spielmodus",
-                ForeColor = Color.Silver,
-                Font      = new Font("Consolas", 9),
-                Bounds    = new Rectangle(40, 96, 280, 18),
-            };
-
-            rb1 = MacheRadio("  1 Spieler", 40, 116, true);
-            rb2 = MacheRadio("  2 Spieler", 40, 144, false);
+            // ── Spielmodus ────────────────────────────────────────────────────
+            Controls.Add(Kleinlabel("Spielmodus", 40, 90));
+            rb1 = Radio("  1 Spieler", 40, 110, vorSpieler == 1);
+            rb2 = Radio("  2 Spieler", 40, 136, vorSpieler == 2);
             rb2.CheckedChanged += (s, e) => AktualisiereSichtbarkeit();
+            Controls.Add(rb1);
+            Controls.Add(rb2);
+
+            Controls.Add(Trennlinie(170));
 
             // ── Namen ─────────────────────────────────────────────────────────
-            pnlNames = new Panel
+            Controls.Add(Kleinlabel("Namen", 40, 186));
+            Controls.Add(Kleinlabel("Spieler 1:", 40, 208));
+            txt1 = TextEingabe(vorName1, 140, 206);
+            Controls.Add(txt1);
+
+            lblName2 = Kleinlabel("Spieler 2:", 40, 238);
+            txt2     = TextEingabe(vorName2, 140, 236);
+            lblName2.Visible = txt2.Visible = (vorSpieler == 2);
+            Controls.Add(lblName2);
+            Controls.Add(txt2);
+
+            Controls.Add(Trennlinie(270));
+
+            // ── Hindernisse ───────────────────────────────────────────────────
+            chkHind = new CheckBox
             {
-                Bounds    = new Rectangle(0, 180, 360, 88),
+                Text      = "  Hindernisse aktivieren",
+                Checked   = vorHindernisse > 0,
+                Font      = new Font("Consolas", 10),
+                ForeColor = Color.White,
                 BackColor = Color.Transparent,
+                Bounds    = new Rectangle(40, 284, 230, 24),
+                Cursor    = Cursors.Hand,
             };
+            chkHind.CheckedChanged += (s, e) => AktualisiereSichtbarkeit();
+            Controls.Add(chkHind);
 
-            var lblName1 = MacheLabel("Spieler 1 :", 40, 6);
-            txt1  = MacheTextBox("Dax",   160, 4);
-            lbl2  = MacheLabel("Spieler 2 :", 40, 40);
-            txt2  = MacheTextBox("Spax",  160, 38);
-
-            lbl2.Visible = false;
-            txt2.Visible = false;
-
-            pnlNames.Controls.AddRange(new Control[] { lblName1, txt1, lbl2, txt2 });
-
-            // ── Trennlinie ────────────────────────────────────────────────────
-            var trenn = new Label
+            lblHindAnzahl = Kleinlabel("Anzahl:", 40, 314);
+            nudHind = new NumericUpDown
             {
-                Text      = "──────────────────────────────",
-                ForeColor = Color.FromArgb(40, 120, 20),
-                TextAlign = ContentAlignment.MiddleCenter,
-                Bounds    = new Rectangle(0, 270, 360, 18),
-                Font      = new Font("Consolas", 9),
+                Minimum   = 1, Maximum = 30,
+                Value     = Math.Max(1, vorHindernisse),
+                Font      = new Font("Consolas", 10),
+                BackColor = Color.FromArgb(28, 28, 28),
+                ForeColor = Color.White,
+                Bounds    = new Rectangle(110, 312, 70, 24),
             };
+            lblHindAnzahl.Visible = nudHind.Visible = chkHind.Checked;
+            Controls.Add(lblHindAnzahl);
+            Controls.Add(nudHind);
 
             // ── Start-Button ──────────────────────────────────────────────────
             var btnStart = new Button
             {
                 Text      = "▶  SPIELEN",
-                Bounds    = new Rectangle(90, 286, 180, 38),
+                Bounds    = new Rectangle(90, 330, 180, 36),
                 BackColor = GRÜN,
                 ForeColor = Color.Black,
                 FlatStyle = FlatStyle.Flat,
@@ -100,60 +106,46 @@ namespace _2026_04_28_Snake
             };
             btnStart.FlatAppearance.BorderSize = 0;
             btnStart.Click += BtnStart_Click;
-
             AcceptButton = btnStart;
-            Controls.AddRange(new Control[]
-            {
-                titel, untertitel, lblSpieler, rb1, rb2, pnlNames, trenn, btnStart
-            });
+            Controls.Add(btnStart);
         }
-
-        // ── Hilfsmethoden ─────────────────────────────────────────────────────
 
         private void BtnStart_Click(object? sender, EventArgs e)
         {
-            AnzahlSpieler = rb2.Checked ? 2 : 1;
-            Name1 = txt1.Text.Trim() == "" ? "Spieler 1" : txt1.Text.Trim();
-            Name2 = txt2.Text.Trim() == "" ? "Spieler 2" : txt2.Text.Trim();
-            DialogResult = DialogResult.OK;
+            AnzahlSpieler     = rb2.Checked ? 2 : 1;
+            Name1             = txt1.Text.Trim() == "" ? "Spieler 1" : txt1.Text.Trim();
+            Name2             = txt2.Text.Trim() == "" ? "Spieler 2" : txt2.Text.Trim();
+            AnzahlHindernisse = chkHind.Checked ? (int)nudHind.Value : 0;
+            DialogResult      = DialogResult.OK;
             Close();
         }
 
         private void AktualisiereSichtbarkeit()
         {
-            lbl2.Visible = txt2.Visible = rb2.Checked;
+            lblName2.Visible      = txt2.Visible      = rb2.Checked;
+            lblHindAnzahl.Visible = nudHind.Visible   = chkHind.Checked;
         }
 
-        private RadioButton MacheRadio(string text, int x, int y, bool geprüft) =>
-            new RadioButton
-            {
-                Text      = text,
-                Checked   = geprüft,
-                Font      = new Font("Consolas", 11),
-                ForeColor = Color.White,
-                BackColor = Color.Transparent,
-                Bounds    = new Rectangle(x, y, 200, 26),
-                Cursor    = Cursors.Hand,
-            };
+        // ── Hilfsmethoden ─────────────────────────────────────────────────────
+        private RadioButton Radio(string text, int x, int y, bool an) =>
+            new RadioButton { Text = text, Checked = an,
+                Font = new Font("Consolas", 11), ForeColor = Color.White,
+                BackColor = Color.Transparent, Bounds = new Rectangle(x, y, 200, 24),
+                Cursor = Cursors.Hand };
 
-        private Label MacheLabel(string text, int x, int y) =>
-            new Label
-            {
-                Text      = text,
-                Font      = new Font("Consolas", 9),
-                ForeColor = Color.Silver,
-                Bounds    = new Rectangle(x, y + 4, 110, 22),
-            };
+        private Label Kleinlabel(string text, int x, int y) =>
+            new Label { Text = text, Font = new Font("Consolas", 9),
+                ForeColor = Color.Silver, Bounds = new Rectangle(x, y + 4, 120, 20) };
 
-        private TextBox MacheTextBox(string platzhalter, int x, int y) =>
-            new TextBox
-            {
-                Text        = platzhalter,
-                Font        = new Font("Consolas", 11),
-                ForeColor   = Color.White,
-                BackColor   = Color.FromArgb(30, 30, 30),
-                BorderStyle = BorderStyle.FixedSingle,
-                Bounds      = new Rectangle(x, y, 150, 26),
-            };
+        private TextBox TextEingabe(string text, int x, int y) =>
+            new TextBox { Text = text, Font = new Font("Consolas", 11),
+                ForeColor = Color.White, BackColor = Color.FromArgb(28, 28, 28),
+                BorderStyle = BorderStyle.FixedSingle, Bounds = new Rectangle(x, y, 170, 26) };
+
+        private Label Trennlinie(int y) =>
+            new Label { Text = "──────────────────────────────",
+                Font = new Font("Consolas", 9), ForeColor = Color.FromArgb(40, 100, 20),
+                TextAlign = ContentAlignment.MiddleCenter,
+                Bounds = new Rectangle(0, y, 360, 16) };
     }
 }

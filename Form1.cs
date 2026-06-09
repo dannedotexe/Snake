@@ -69,13 +69,18 @@ namespace _2026_04_28_Snake
         private void NeuesSpielStarten()
         {
             timerZug.Stop();
-            var dlg = new StartDialog();
+            // Namen und Einstellungen vorausfüllen
+            var dlg = new StartDialog(dax.Name, spax.Name, anzahlSpieler, anzahlHindernisse);
             if (dlg.ShowDialog(this) != DialogResult.OK) { Close(); return; }
-            anzahlSpieler = dlg.AnzahlSpieler;
-            dax.Name      = dlg.Name1;
-            spax.Name     = dlg.Name2;
+            anzahlSpieler     = dlg.AnzahlSpieler;
+            dax.Name          = dlg.Name1;
+            spax.Name         = dlg.Name2;
+            anzahlHindernisse = dlg.AnzahlHindernisse;
             Starten();
         }
+
+        // Rematch: gleiche Spieler + Einstellungen, kein Dialog
+        private void Rematch() => Starten();
 
         private void Starten()
         {
@@ -452,8 +457,8 @@ namespace _2026_04_28_Snake
             if (bestenliste.Count > 10) bestenliste.Dequeue();
             BestenlisteSpeichern();
 
-            string msg =
-                $"💀  {verlierer} hat verloren!\n\n" +
+            // Ergebnis-Text aufbauen
+            string ergebnis =
                 $"── Ergebnis ──────────────────\n" +
                 $"{dax.Name}:  {scoreDax} Äpfel" +
                 (anzahlSpieler == 2 ? $"\n{spax.Name}: {scoreSpax} Äpfel" : "") +
@@ -461,13 +466,69 @@ namespace _2026_04_28_Snake
                 $"{dax.Name}:  {highscoreDax} Äpfel" +
                 (anzahlSpieler == 2 ? $"\n{spax.Name}: {highscoreSpax} Äpfel" : "") +
                 $"\n\n── Letzte 10 Spiele ──────────\n" +
-                string.Join("\n", bestenliste) +
-                "\n\nNochmal spielen?";
+                string.Join("\n", bestenliste);
 
-            if (MessageBox.Show(msg, "Spiel beendet", MessageBoxButtons.YesNo) == DialogResult.Yes)
-                NeuesSpielStarten();
-            else
-                Close();
+            int wahl = ZeigeSpielEndeDialog($"💀  {verlierer} hat verloren!", ergebnis);
+            if (wahl == 0) Rematch();
+            else if (wahl == 1) NeuesSpielStarten();
+            else Close();
+        }
+
+        // Gibt zurück: 0 = Rematch, 1 = Neues Spiel, 2 = Beenden
+        private int ZeigeSpielEndeDialog(string titel, string inhalt)
+        {
+            int ergebnis = 2;
+            var f = new Form
+            {
+                Text            = "Spiel beendet",
+                FormBorderStyle = FormBorderStyle.FixedDialog,
+                StartPosition   = FormStartPosition.CenterParent,
+                MaximizeBox     = false, MinimizeBox = false,
+                ClientSize      = new Size(400, 400),
+                BackColor       = Color.FromArgb(15, 15, 15),
+            };
+
+            f.Controls.Add(new Label
+            {
+                Text      = titel,
+                Font      = new Font("Arial", 13, FontStyle.Bold),
+                ForeColor = Color.FromArgb(240, 80, 80),
+                TextAlign = ContentAlignment.MiddleCenter,
+                Bounds    = new Rectangle(0, 14, 400, 30),
+            });
+            f.Controls.Add(new Label
+            {
+                Text      = inhalt,
+                Font      = new Font("Consolas", 8),
+                ForeColor = Color.Silver,
+                Bounds    = new Rectangle(20, 52, 360, 270),
+            });
+
+            // ── Buttons ──────────────────────────────────────────────────────
+            Button MacheBtn(string text, Color bg, int x) =>
+                new Button
+                {
+                    Text = text, Bounds = new Rectangle(x, 330, 110, 36),
+                    BackColor = bg, ForeColor = Color.White,
+                    FlatStyle = FlatStyle.Flat, Font = new Font("Consolas", 9, FontStyle.Bold),
+                    Cursor = Cursors.Hand,
+                };
+
+            var btnRematch = MacheBtn("↺  Rematch",     Color.FromArgb(87, 138, 52),  14);
+            var btnNeu     = MacheBtn("⊕  Neues Spiel", Color.FromArgb(60, 90, 160), 140);
+            var btnExit    = MacheBtn("✕  Beenden",     Color.FromArgb(130, 40, 40),  270);
+
+            btnRematch.FlatAppearance.BorderSize = 0;
+            btnNeu.FlatAppearance.BorderSize     = 0;
+            btnExit.FlatAppearance.BorderSize    = 0;
+
+            btnRematch.Click += (s, e) => { ergebnis = 0; f.Close(); };
+            btnNeu.Click     += (s, e) => { ergebnis = 1; f.Close(); };
+            btnExit.Click    += (s, e) => { ergebnis = 2; f.Close(); };
+
+            f.Controls.AddRange(new Control[] { btnRematch, btnNeu, btnExit });
+            f.ShowDialog(this);
+            return ergebnis;
         }
 
         private void TitelAktualisieren()
